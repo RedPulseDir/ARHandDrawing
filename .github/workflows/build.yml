@@ -26,6 +26,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
+        sudo apt-get install -y --fix-broken
         sudo apt-get install -y \
           build-essential \
           git \
@@ -41,9 +42,6 @@ jobs:
           libavformat-dev \
           libavcodec-dev \
           zlib1g-dev \
-          libgstreamer1.0-dev \
-          gstreamer1.0-plugins-base \
-          gstreamer1.0-plugins-good \
           libffi-dev \
           libssl-dev \
           autoconf \
@@ -53,23 +51,32 @@ jobs:
           unzip \
           zip \
           ccache \
-          cmake
+          cmake \
+          libunwind-dev
         
         pip install --upgrade pip setuptools wheel
         pip install buildozer==1.5.0 cython==0.29.33
     
     - name: Build APK
       run: |
+        export PATH=$PATH:~/.local/bin
         yes | buildozer android debug 2>&1 | tee build.log
       timeout-minutes: 60
     
-    - name: Find and upload APK
+    - name: Find APK
+      if: always()
+      run: |
+        echo "=== Searching for APK ==="
+        find . -name "*.apk" -type f 2>/dev/null || echo "No APK found"
+        echo "=== Bin directory ==="
+        ls -la bin/ 2>/dev/null || echo "No bin directory"
+    
+    - name: Upload APK
+      if: success()
       uses: actions/upload-artifact@v4
       with:
         name: APK
-        path: |
-          bin/*.apk
-          .buildozer/android/platform/build-*/dists/*/build/outputs/apk/**/*.apk
+        path: bin/*.apk
         if-no-files-found: warn
     
     - name: Upload logs
@@ -78,3 +85,4 @@ jobs:
       with:
         name: build-log
         path: build.log
+        if-no-files-found: warn
