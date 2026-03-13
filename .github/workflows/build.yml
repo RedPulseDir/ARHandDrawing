@@ -1,4 +1,4 @@
-name: Build APK
+name: Build AR Hand Drawing APK
 
 on:
   push:
@@ -75,7 +75,7 @@ jobs:
       if: success()
       uses: actions/upload-artifact@v4
       with:
-        name: APK
+        name: AR-Hand-Drawing-APK
         path: bin/*.apk
         if-no-files-found: warn
     
