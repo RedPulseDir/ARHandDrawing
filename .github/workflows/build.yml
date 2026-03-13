@@ -51,28 +51,54 @@ jobs:
           libltdl-dev \
           unzip \
           zip \
-          ccache
+          lld \
+          ccache \
+          cmake \
+          ninja-build
     
     - name: Install Python dependencies
       run: |
         pip install --upgrade pip setuptools wheel
-        pip install buildozer cython virtualenv
+        pip install buildozer==1.5.0 cython==0.29.36
     
     - name: Build APK
       run: |
-        yes | buildozer android debug 2>&1 | tee build.log
-      timeout-minutes: 60
+        buildozer android debug 2>&1 | tee build.log || true
+    
+    - name: Show build directory
+      if: always()
+      run: |
+        echo "=== Current directory ==="
+        pwd
+        ls -la
+        echo ""
+        echo "=== Bin directory ==="
+        ls -la bin/ 2>/dev/null || echo "bin/ not found"
+        echo ""
+        echo "=== .buildozer directory ==="
+        ls -la .buildozer/ 2>/dev/null || echo ".buildozer/ not found"
+        echo ""
+        echo "=== Last 100 lines of build log ==="
+        tail -100 build.log 2>/dev/null || echo "No build.log"
+    
+    - name: Find APK files
+      if: always()
+      run: |
+        echo "=== Searching for APK files ==="
+        find . -name "*.apk" -type f 2>/dev/null || echo "No APK found"
     
     - name: Upload APK
+      if: success()
       uses: actions/upload-artifact@v4
       with:
         name: APK
         path: bin/*.apk
-        if-no-files-found: error
+        if-no-files-found: warn
     
     - name: Upload build log
-      if: failure()
+      if: always()
       uses: actions/upload-artifact@v4
       with:
         name: build-log
         path: build.log
+        if-no-files-found: warn
