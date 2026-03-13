@@ -10,18 +10,23 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Setup Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
+        python-version: '3.11'
     
-    - name: Install dependencies
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+    
+    - name: Install system dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y \
-          python3-pip \
           build-essential \
           git \
           ffmpeg \
@@ -36,6 +41,7 @@ jobs:
           zlib1g-dev \
           libgstreamer1.0-dev \
           gstreamer1.0-plugins-base \
+          gstreamer1.0-plugins-good \
           libffi-dev \
           libssl-dev \
           autoconf \
@@ -43,19 +49,30 @@ jobs:
           libtool \
           pkg-config \
           libltdl-dev \
-          libncurses5-dev \
           unzip \
-          openjdk-17-jdk
-        
-        pip install --upgrade pip
+          zip \
+          ccache
+    
+    - name: Install Python dependencies
+      run: |
+        pip install --upgrade pip setuptools wheel
         pip install buildozer cython virtualenv
     
     - name: Build APK
       run: |
-        yes | buildozer android debug
+        yes | buildozer android debug 2>&1 | tee build.log
+      timeout-minutes: 60
     
     - name: Upload APK
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: APK
         path: bin/*.apk
+        if-no-files-found: error
+    
+    - name: Upload build log
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-log
+        path: build.log
